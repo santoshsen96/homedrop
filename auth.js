@@ -6,21 +6,21 @@ AWS.config.update({
 });
 
 
-const dynamoDBTableName2="secondTable"
+const dynamoDBTableName="secondTable"
 const dynamodb = new AWS.DynamoDB.DocumentClient();
+const userPath="/auth"
 
-const userPath2="/auth"
+
+//const tok=generateDynamicToken(25)
 
 exports.handler = async (event) => {
-  // TODO implement
   let response;
   switch(event.httpMethod){
     case "POST":
-       if (event.resource === userPath2) { // Check the resource path
-        response = await saveUser2(JSON.parse(event.body));
-      } 
+       if (event.resource === userPath) { // Check the resource path
+        response = await saveUser(JSON.parse(event.body));
+      }
       break;
-    
     default:
       response=buildResponse(404,"404 not found");
   }
@@ -31,23 +31,36 @@ exports.handler = async (event) => {
 
 
 
-
-async function saveUser2(requestBody){
+async function saveUser(requestBody){
+ // token=requestBody.token
+ const tok=generateDynamicToken(26)
   const params={
-    TableName: dynamoDBTableName2,
-    Item:requestBody
+    TableName: dynamoDBTableName,
+    Item:{tok,...requestBody}
+    
   }
   return await dynamodb.put(params).promise().then(()=>{
     const body={
       operation:'SAVE',
       message:'SUCCESS',
       item:requestBody,
-      token:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+      tok:tok
     }
     return buildResponse(200,body)
   },(err)=>{
     console.log(err)
   })
+}
+function generateDynamicToken(length) {
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let token = "";
+    
+    for (let i = 0; i < length; i++) {
+        const randomIndex = Math.floor(Math.random() * charset.length);
+        token += charset.charAt(randomIndex);
+    }
+    
+    return token;
 }
 
 function buildResponse(statusCode,body){
